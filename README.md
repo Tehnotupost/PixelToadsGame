@@ -1,33 +1,37 @@
-# PixelToads
+# PixelToadsGame
 
-A [libGDX](https://libgdx.com/) project generated with [gdx-liftoff](https://github.com/libgdx/gdx-liftoff).
+PixelToadsGame 🐸
+PixelToadsGame — это пиксельный карточный рогалик про жаб.
+🎮 Текущий статус
+✅ Хаб
+✅ Механика кормления (клик по мухам)
+⏳ Карточная система
+⏳ Бои
 
-This project was generated with a template including simple application launchers and an `ApplicationAdapter` extension that draws libGDX logo.
+🕹 Скачать и поиграть
+Скачать последнюю версию можно здесь:
+👉 https://github.com/Tehnotupost/PixelToadsGame/releases
 
-## Platforms
+### Как запустить:
+1. Установить Java (если нет)
+2. Скачать .jar
+3. Запустить:
 
-- `core`: Main module with the application logic shared by all platforms.
-- `lwjgl3`: Primary desktop platform using LWJGL3; was called 'desktop' in older docs.
+java -jar PixelToads-1.0.0.jar
 
-## Gradle
+📸 Геймплей
+<img width="480" height="270" alt="ToadEating" src="https://github.com/user-attachments/assets/22770079-3470-4310-956a-59356b2b72a5" />
 
-This project uses [Gradle](https://gradle.org/) to manage dependencies.
-The Gradle wrapper was included, so you can run Gradle tasks using `gradlew.bat` or `./gradlew` commands.
-Useful Gradle tasks and flags:
 
-- `--continue`: when using this flag, errors will not stop the tasks from running.
-- `--daemon`: thanks to this flag, Gradle daemon will be used to run chosen tasks.
-- `--offline`: when using this flag, cached dependency archives will be used.
-- `--refresh-dependencies`: this flag forces validation of all dependencies. Useful for snapshot versions.
-- `build`: builds sources and archives of every project.
-- `cleanEclipse`: removes Eclipse project data.
-- `cleanIdea`: removes IntelliJ project data.
-- `clean`: removes `build` folders, which store compiled classes and built archives.
-- `eclipse`: generates Eclipse project data.
-- `idea`: generates IntelliJ project data.
-- `lwjgl3:jar`: builds application's runnable jar, which can be found at `lwjgl3/build/libs`.
-- `lwjgl3:run`: starts the application.
-- `test`: runs unit tests (if any).
+💡 Особенности
+уникальные жабы с поведением
+карточная система изменения мира
+развитие хаба
 
-Note that most tasks that are not specific to a single project can be run with `name:` prefix, where the `name` should be replaced with the ID of a specific project.
-For example, `core:clean` removes `build` folder only from the `core` project.
+🤝 Хочешь помочь?
+Ты можешь:
+предложить идеи
+сообщить о багах
+сделать pull request
+Подробнее смотри в CONTRIBUTING.md
+
