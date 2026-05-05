@@ -15,10 +15,10 @@ import io.github.jennystudio.pixeltoads.ui.UIStyles;
 
 public class BuildMenuScreen implements Screen {
     private final PixelToadsGame game;
-    private final BattleScreen hubScreen; // Ссылка на экран озера
+    private final HubScreen hubScreen; // Ссылка на экран озера
     private Stage stage;
 
-    public BuildMenuScreen(final PixelToadsGame game, final BattleScreen hubScreen, Skin skin) {
+    public BuildMenuScreen(final PixelToadsGame game, final HubScreen hubScreen, Skin skin) {
         this.game = game;
         this.hubScreen = hubScreen;
         this.stage = new Stage(game.viewport);
@@ -34,7 +34,7 @@ public class BuildMenuScreen implements Screen {
         lilyBtn.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                hubScreen.setLilyPadBuilt(true); // Сообщаем озеру, что построили
+                hubScreen.setLilyPadBuilt(true);// Сообщаем озеру, что построили
                 game.setScreen(hubScreen);       // Возвращаемся
             }
         });

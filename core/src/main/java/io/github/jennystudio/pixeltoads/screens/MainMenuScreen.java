@@ -34,7 +34,7 @@ public class MainMenuScreen implements Screen {
         startBtn.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                 game.setScreen(new BattleScreen(game, skin));
+                 game.setScreen(new HubScreen(game, skin));
             }
         });
         savesBtn.addListener(new ClickListener() {
