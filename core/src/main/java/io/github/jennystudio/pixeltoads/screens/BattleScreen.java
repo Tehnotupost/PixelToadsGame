@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
@@ -11,8 +12,10 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.ObjectMap;
 import com.badlogic.gdx.utils.ScreenUtils;
 import io.github.jennystudio.pixeltoads.PixelToadsGame;
+import io.github.jennystudio.pixeltoads.logic.CardActor;
 import io.github.jennystudio.pixeltoads.ui.UIStyles;
 import io.github.jennystudio.pixeltoads.utils.Assets;
 
@@ -21,7 +24,8 @@ public class BattleScreen implements Screen {
     private Stage stage;
     private Skin skin;
     private final HubScreen hubScreen;
-    private Texture bgTexture, RHTexture, RVTexture, RURTexture, RDRTexture, RULTexture, RDLTexture;
+    private Texture bgTexture, RHTexture, RVTexture, RURTexture, RDRTexture, RULTexture, RDLTexture, groveCardTexture, groveVTexture,
+        groveHTexture, groveURTexture, groveULTexture, groveDRTexture, groveDLTexture ;
     private boolean isFirstRunDone;
     private TextButton runBtn;
     private Array<Vector2> path;
@@ -33,6 +37,13 @@ public class BattleScreen implements Screen {
     private Texture frogTexture;
     float offsetX = 0;
     float offsetY = 0;
+    private boolean isPlacingTile = false;
+    private CardActor selectedCard = null;
+    private Vector2 cursorGridPos = new Vector2();
+    private Image groveCardImage;              // Объект карточки в UI
+    private com.badlogic.gdx.utils.ObjectMap<Vector2, String> roadModifiers = new com.badlogic.gdx.utils.ObjectMap<>();
+    CardActor groveCard;
+    private Vector2 hoverGridPos = new Vector2(-1, -1);
 
     public BattleScreen(final PixelToadsGame game, Skin skin, HubScreen hubScreen) {
         this.game = game;
@@ -53,6 +64,13 @@ public class BattleScreen implements Screen {
         RULTexture = game.assets.getTexture(Assets.ROAD_UL);
         RDLTexture = game.assets.getTexture(Assets.ROAD_DL);
         frogTexture = game.assets.getTexture(Assets.FROG_L);
+        groveCardTexture = game.assets.getTexture(Assets.CARD_GROVE);
+        groveVTexture = game.assets.getTexture(Assets.GROVE_V);
+        groveHTexture = game.assets.getTexture(Assets.GROVE_H);
+        groveURTexture = game.assets.getTexture(Assets.GROVE_UR);
+        groveULTexture = game.assets.getTexture(Assets.GROVE_UL);
+        groveDRTexture = game.assets.getTexture(Assets.GROVE_DR);
+        groveDLTexture = game.assets.getTexture(Assets.GROVE_DL);
     }
 
     private void generateLoopPath() {
@@ -166,10 +184,24 @@ public class BattleScreen implements Screen {
             Vector2 current = path.get(i);
             Vector2 prev = path.get(i == 0 ? path.size - 1 : i - 1);
             Vector2 next = path.get((i + 1) % path.size);
-
-            Texture tile = getTileForPath(prev, current, next);
+            String modifier = roadModifiers.get(current, "NORMAL");
+            Texture tile;
+            boolean isHovered = isPlacingTile && current.equals(hoverGridPos);
+            if (modifier.equals("GROVE")) {
+                tile = groveVTexture;
+            } else {
+                tile = getTileForPath(prev, current, next);
+            }
+            if (isHovered) {
+                game.batch.setColor(1.0f, 1.0f, 1.0f, 0.7f);
+            }else if (isPlacingTile) {
+                game.batch.setColor(0.4f, 1.0f, 0.4f, 0.4f);
+            } else {
+                game.batch.setColor(Color.WHITE);
+            }
             game.batch.draw(tile, current.x * TILE_SIZE+ offsetX, current.y * TILE_SIZE+ offsetY, TILE_SIZE, TILE_SIZE);
         }
+        game.batch.setColor(Color.WHITE);
     }
 
     private Texture getTileForPath(Vector2 p, Vector2 c, Vector2 n) {
@@ -234,11 +266,30 @@ public class BattleScreen implements Screen {
         leftSide.add().expand().fill();
         leftSide.row();
         // Нижняя область для карт
-//        Table cardArea = new Table();
-//        cardArea.setBackground(game.skin.newDrawable("white-pixel", Color.valueOf("#2c3e50")));
-//        cardArea.add(new Label("CARDS SLOT", game.skin)).pad(10);
-        // Сюда позже добавим настоящие карты
-//        leftSide.add(cardArea).expandX().fillX().height(68);
+        Table cardArea = new Table();
+        cardArea.setBackground(game.skin.newDrawable("white-pixel", Color.valueOf("#2c3e50")));
+        cardArea.add(new Label("CARDS SLOT", game.skin)).pad(10);
+        groveCard = new CardActor(new TextureRegion(groveCardTexture));
+        groveCard.setTransform(true);
+        groveCard.setOrigin(22.5f, 32f);
+        groveCard.addListener(new ClickListener() {
+            @Override
+            public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
+                if (!isMoving) {
+                    isPlacingTile = true;
+                    selectedCard = groveCard;
+                    Gdx.app.log("Game", "Режим карты GROVE активирован!");
+                    com.badlogic.gdx.scenes.scene2d.Actor cardActor = event.getListenerActor();
+
+                    cardActor.clearActions();
+                    cardActor.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.scaleTo(
+                        1.3f, 1.3f, 0.2f, com.badlogic.gdx.math.Interpolation.swingOut
+                    ));
+                }
+            }
+        });
+        cardArea.add(groveCard).pad(5).size(45, 64);
+        leftSide.add(cardArea).expandX().fillX().height(68);
         // Меню и статы
         Table rightSidebar = new Table();
         rightSidebar.setBackground(game.skin.newDrawable("white-pixel", Color.valueOf("#34495e")));
@@ -251,19 +302,61 @@ public class BattleScreen implements Screen {
         // Кнопки меню
         rightSidebar.add(runBtn).width(70).padBottom(5).row();
         // Кнопка Назад через UIStyles
-//        UIStyles.addBackButton(rightSidebar.getStage(), game.skin, () -> game.setScreen(hubScreen));
         root.add(leftSide).expand().fill();
         root.add(rightSidebar).width(138).fillY();
-//        Table table = new Table();
-//        table.bottom().padBottom(10);
-//        table.setFillParent(true);
-//        stage.addActor(table);
-//        runBtn = new TextButton("RUN", game.skin);
-//        //тут поведение кнопок
-        UIStyles.addBackButton(stage, game.skin, () -> game.setScreen(hubScreen));
-//        isFirstRunDone = true;
-//        hubScreen.checkFrogAppearance();
-//        table.add(runBtn).pad(5);
+        //тут поведение кнопок
+//        UIStyles.addBackButton(stage, game.skin, () -> game.setScreen(hubScreen));
+        UIStyles.addBackButton(stage, game.skin, () -> {
+            hubScreen.setFrogSpawned(true);
+            isMoving = false;
+            game.setScreen(hubScreen);
+        });
+    }
+
+    private void selectCardForPlacement(CardActor card) {
+        isPlacingTile = true;
+        selectedCard = card;
+        Gdx.app.log("Game", "Выбрана карта: " + card.terrainType + ". Выберите клетку дороги.");
+    }
+
+    private void replaceRoadTile(Vector2 cell, String type) {
+        for (Vector2 p : path) {
+            if (p.equals(cell)) {
+                roadModifiers.put(p, type);
+                Gdx.app.log("Game", "Тайл " + cell + " успешно заменен на " + type);
+                break;
+            }
+        }
+    }
+
+    private void handleMapClicks() {
+        if (isPlacingTile && Gdx.input.justTouched()) {
+            Vector2 clickedCell = getGridPosFromMouse();
+            boolean targetFound = false;
+            for (Vector2 roadTile : path) {
+                if ((int)roadTile.x == (int)clickedCell.x && (int)roadTile.y == (int)clickedCell.y) {
+                    roadModifiers.put(roadTile, "GROVE");
+                    targetFound = true;
+                    break;
+                }
+            }
+            if (targetFound) {
+                isPlacingTile = false;
+                if (groveCard != null) {
+                    groveCard.remove();
+                }
+                Gdx.app.log("Game", "Успешно установлено в: " + clickedCell);
+            } else {
+                Gdx.app.log("Game", "Клик мимо дороги: " + clickedCell);
+            }
+        }
+    }
+
+    private Vector2 getGridPosFromMouse() {
+        Vector2 touch = stage.getViewport().unproject(new Vector2(Gdx.input.getX(), Gdx.input.getY()));
+        int gridX = MathUtils.floor((touch.x - offsetX) / TILE_SIZE);
+        int gridY = MathUtils.floor((touch.y - offsetY) / TILE_SIZE);
+        return new Vector2(gridX, gridY);
     }
 
     @Override
@@ -274,6 +367,14 @@ public class BattleScreen implements Screen {
     @Override
     public void render(float delta) {
         ScreenUtils.clear(0, 0, 0, 1);
+        if (isPlacingTile) {
+            // пиксели мыши в координаты Stage
+            Vector2 currentMouseGrid = getGridPosFromMouse();
+            hoverGridPos.set(currentMouseGrid.x, currentMouseGrid.y);
+            handleMapClicks();
+        } else {
+            hoverGridPos.set(-1, -1);
+        }
         game.batch.begin();
         game.batch.draw(bgTexture, 0, 0, 480, 270);
         drawRoad();
