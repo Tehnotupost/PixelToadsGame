@@ -12,10 +12,13 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.ObjectMap;
 import com.badlogic.gdx.utils.ScreenUtils;
 import io.github.jennystudio.pixeltoads.PixelToadsGame;
 import io.github.jennystudio.pixeltoads.logic.CardActor;
+import io.github.jennystudio.pixeltoads.logic.CardArea;
+import io.github.jennystudio.pixeltoads.logic.PathGenerator;
+import io.github.jennystudio.pixeltoads.logic.PlacementManager;
+import io.github.jennystudio.pixeltoads.model.terra.TerraRegistry;
 import io.github.jennystudio.pixeltoads.ui.UIStyles;
 import io.github.jennystudio.pixeltoads.utils.Assets;
 
@@ -24,9 +27,7 @@ public class BattleScreen implements Screen {
     private Stage stage;
     private Skin skin;
     private final HubScreen hubScreen;
-    private Texture bgTexture, RHTexture, RVTexture, RURTexture, RDRTexture, RULTexture, RDLTexture, groveCardTexture, groveVTexture,
-        groveHTexture, groveURTexture, groveULTexture, groveDRTexture, groveDLTexture ;
-    private boolean isFirstRunDone;
+    private Texture bgTexture, groveCardTexture, swampCardTexture;
     private TextButton runBtn;
     private Array<Vector2> path;
     private final int TILE_SIZE = 20;
@@ -39,11 +40,12 @@ public class BattleScreen implements Screen {
     float offsetY = 0;
     private boolean isPlacingTile = false;
     private CardActor selectedCard = null;
-    private Vector2 cursorGridPos = new Vector2();
-    private Image groveCardImage;              // Объект карточки в UI
     private com.badlogic.gdx.utils.ObjectMap<Vector2, String> roadModifiers = new com.badlogic.gdx.utils.ObjectMap<>();
-    CardActor groveCard;
+    CardActor groveCard, swampCard;
     private Vector2 hoverGridPos = new Vector2(-1, -1);
+    private PlacementManager placementManager;
+    private TerraRegistry terraRegistry;
+    private CardArea cardHand;
 
     public BattleScreen(final PixelToadsGame game, Skin skin, HubScreen hubScreen) {
         this.game = game;
@@ -51,172 +53,61 @@ public class BattleScreen implements Screen {
         this.stage = new Stage(game.viewport);
         this.hubScreen = hubScreen;
         loadTexture();
-        generateLoopPath();
+        PathGenerator pathGenerator = new PathGenerator(15, 12);
+        this.path = pathGenerator.generateLoopPath();
+        this.placementManager = new PlacementManager(path, roadModifiers);
+        this.terraRegistry = new TerraRegistry(game);
+        this.placementManager = new PlacementManager(path, roadModifiers);
         initUI();
     }
 
     private void loadTexture(){
         bgTexture = game.assets.getTexture(Assets.RUN_MAP);
-        RHTexture = game.assets.getTexture(Assets.ROAD_H);
-        RVTexture = game.assets.getTexture(Assets.ROAD_V);
-        RURTexture = game.assets.getTexture(Assets.ROAD_UR);
-        RDRTexture = game.assets.getTexture(Assets.ROAD_DR);
-        RULTexture = game.assets.getTexture(Assets.ROAD_UL);
-        RDLTexture = game.assets.getTexture(Assets.ROAD_DL);
         frogTexture = game.assets.getTexture(Assets.FROG_L);
         groveCardTexture = game.assets.getTexture(Assets.CARD_GROVE);
-        groveVTexture = game.assets.getTexture(Assets.GROVE_V);
-        groveHTexture = game.assets.getTexture(Assets.GROVE_H);
-        groveURTexture = game.assets.getTexture(Assets.GROVE_UR);
-        groveULTexture = game.assets.getTexture(Assets.GROVE_UL);
-        groveDRTexture = game.assets.getTexture(Assets.GROVE_DR);
-        groveDLTexture = game.assets.getTexture(Assets.GROVE_DL);
-    }
-
-    private void generateLoopPath() {
-        path = new Array<>();
-        int width = 15;
-        int height = 12;
-        boolean success = false;
-        int maxGlobalAttempts = 100;
-        int globalAttempts = 0;
-
-        while (!success && globalAttempts < maxGlobalAttempts) {
-            globalAttempts++;
-            path.clear();
-            Vector2 startPos = new Vector2(3, MathUtils.random(5, 9));
-            Vector2 endPos = new Vector2(width - 3, MathUtils.random(5, 9));
-            Array<Vector2> topPath = buildGuidedPath(startPos, endPos, width, height, true, new Array<>(), 7);
-            if (topPath == null) continue;
-            Array<Vector2> bottomPath = buildGuidedPath(startPos, endPos, width, height, false, topPath, 7);
-            if (bottomPath != null) {
-                path.addAll(topPath);
-                bottomPath.reverse();
-                bottomPath.removeIndex(0);
-                bottomPath.removeIndex(bottomPath.size - 1);
-                path.addAll(bottomPath);
-                success = true;
-            }
-        }
-    }
-
-    private Array<Vector2> buildGuidedPath(Vector2 start, Vector2 end, int w, int h, boolean preferUp, Array<Vector2> avoidList, int minLen) {
-        Array<Vector2> currentPath = new Array<>();
-        Vector2 current = new Vector2(start);
-        currentPath.add(new Vector2(current));
-        Vector2 lastDir = null;
-
-        int safety = 0;
-        while (!current.equals(end) && safety < 100) {
-            safety++;
-            Array<Vector2> neighbors = new Array<>();
-            Vector2[] dirs = {new Vector2(1, 0), new Vector2(-1, 0), new Vector2(0, 1), new Vector2(0, -1)};
-            for (Vector2 d : dirs) {
-                Vector2 check = new Vector2(current.x + d.x, current.y + d.y);
-                // Проверка границ
-                if (check.x >= 2 && check.x < w-2 && check.y >= 3 && check.y < h-2) {
-                    if (check.equals(end)) {
-                        if (currentPath.size >= minLen) neighbors.add(check);
-                        continue;
-                    }
-                    // не наступать на себя и не трогать avoidList
-                    if (!currentPath.contains(check, false) && !isTouchingList(check, avoidList) && countPathNeighbors(check, currentPath)==1) {
-                        neighbors.add(check);
-                    }
-                }
-            }
-            if (neighbors.size == 0) return null;
-            Vector2 prev = new Vector2(current);
-            current = selectBestNeighbor(neighbors, end, preferUp, currentPath, lastDir);
-            currentPath.add(new Vector2(current));
-            lastDir = new Vector2(current.x - prev.x, current.y - prev.y);
-        }
-        return (current.equals(end) && currentPath.size >= minLen) ? currentPath : null;
-    }
-
-    private int countPathNeighbors(Vector2 pos, Array<Vector2> currentPath) {
-        int count = 0;
-        Vector2[] dirs = {new Vector2(1,0), new Vector2(-1,0), new Vector2(0,1), new Vector2(0,-1)};
-        for (Vector2 d : dirs) {
-            if (currentPath.contains(new Vector2(pos.x + d.x, pos.y + d.y), false)) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    private Vector2 selectBestNeighbor(Array<Vector2> neighbors, Vector2 end, boolean preferUp, Array<Vector2> currentPath, Vector2 lastDir) {
-        Vector2 best = neighbors.random();
-        float bestScore = Float.MAX_VALUE;
-        Vector2 lastPos = currentPath.peek();
-        for (Vector2 n : neighbors) {
-            float dist = n.dst2(end);
-            Vector2 thisDir = new Vector2(n.x - lastPos.x, n.y - lastPos.y);
-            float inertiaPenalty = 0;
-            if (lastDir != null && thisDir.equals(lastDir)) {
-                inertiaPenalty = 10f;
-            }
-            float bias = preferUp ? (12 - n.y) : n.y - 1;
-            float randomNoise = MathUtils.random(0f, 3f);
-            float distWeight = (currentPath.size < 10) ? 0.2f : 1.5f;
-            float score = (dist * distWeight) + (bias * 12) + inertiaPenalty + randomNoise;
-
-            if (score < bestScore) {
-                bestScore = score;
-                best = n;
-            }
-        }
-        if (MathUtils.randomBoolean(0.15f)) return neighbors.random();
-        return best;
-    }
-
-    private boolean isTouchingList(Vector2 pos, Array<Vector2> currentPath) {
-        int neighbors = 0;
-        for (Vector2 p : currentPath) {
-            if (Math.abs(pos.x - p.x) + Math.abs(pos.y - p.y) == 1) neighbors++;
-        }
-        return neighbors > 1;
+        swampCardTexture = game.assets.getTexture(Assets.CARD_SWAMP);
     }
 
     private void drawRoad() {
         if (path == null || path.size == 0) return;
+
         for (int i = 0; i < path.size; i++) {
             Vector2 current = path.get(i);
             Vector2 prev = path.get(i == 0 ? path.size - 1 : i - 1);
             Vector2 next = path.get((i + 1) % path.size);
+
             String modifier = roadModifiers.get(current, "NORMAL");
-            Texture tile;
             boolean isHovered = isPlacingTile && current.equals(hoverGridPos);
-            if (modifier.equals("GROVE")) {
-                tile = groveVTexture;
-            } else {
-                tile = getTileForPath(prev, current, next);
+
+            if (modifier.equals("NORMAL") && !isHovered) {
+                Texture tile = terraRegistry.getTile("NORMAL", prev, current, next);
+
+                if (isPlacingTile) game.batch.setColor(0.4f, 1.0f, 0.4f, 0.4f);
+                else game.batch.setColor(Color.WHITE);
+
+                game.batch.draw(tile, current.x * TILE_SIZE + offsetX, current.y * TILE_SIZE + offsetY, TILE_SIZE, TILE_SIZE);
             }
-            if (isHovered) {
-                game.batch.setColor(1.0f, 1.0f, 1.0f, 0.7f);
-            }else if (isPlacingTile) {
-                game.batch.setColor(0.4f, 1.0f, 0.4f, 0.4f);
-            } else {
-                game.batch.setColor(Color.WHITE);
+        }
+
+        for (int i = 0; i < path.size; i++) {
+            Vector2 current = path.get(i);
+            Vector2 prev = path.get(i == 0 ? path.size - 1 : i - 1);
+            Vector2 next = path.get((i + 1) % path.size);
+
+            String modifier = roadModifiers.get(current, "NORMAL");
+            boolean isHovered = isPlacingTile && current.equals(hoverGridPos);
+            // Определяем тип местности
+            String activeType = isHovered ? selectedCard.getTerrainType() : modifier;
+
+            if (!activeType.equals("NORMAL")) {
+                Texture tile = terraRegistry.getTile(activeType, prev, current, next);
+                if (isHovered) game.batch.setColor(1.0f, 1.0f, 1.0f, 0.7f); // Призрак
+                else if (isPlacingTile) game.batch.setColor(0.4f, 1.0f, 0.4f, 0.4f);
+                else game.batch.setColor(Color.WHITE);
+                game.batch.draw(tile, current.x * TILE_SIZE + offsetX, current.y * TILE_SIZE + offsetY, TILE_SIZE, TILE_SIZE);
             }
-            game.batch.draw(tile, current.x * TILE_SIZE+ offsetX, current.y * TILE_SIZE+ offsetY, TILE_SIZE, TILE_SIZE);
         }
         game.batch.setColor(Color.WHITE);
-    }
-
-    private Texture getTileForPath(Vector2 p, Vector2 c, Vector2 n) {
-        int dx1 = (int)(p.x - c.x);
-        int dy1 = (int)(p.y - c.y);
-        int dx2 = (int)(n.x - c.x);
-        int dy2 = (int)(n.y - c.y);
-        if (dx1 != 0 && dx2 != 0) return RHTexture;
-        if (dy1 != 0 && dy2 != 0) return RVTexture;
-        // Углы
-        if ((dy1 == 1 && dx2 == 1) || (dx1 == 1 && dy2 == 1)) return RDLTexture;
-        if ((dy1 == -1 && dx2 == 1) || (dx1 == 1 && dy2 == -1)) return RULTexture;
-        if ((dy1 == 1 && dx2 == -1) || (dx1 == -1 && dy2 == 1)) return RDRTexture;
-        if ((dy1 == -1 && dx2 == -1) || (dx1 == -1 && dy2 == -1)) return RURTexture;
-        return RHTexture;
     }
 
     private void startFrogMovement() {
@@ -266,30 +157,12 @@ public class BattleScreen implements Screen {
         leftSide.add().expand().fill();
         leftSide.row();
         // Нижняя область для карт
-        Table cardArea = new Table();
-        cardArea.setBackground(game.skin.newDrawable("white-pixel", Color.valueOf("#2c3e50")));
-        cardArea.add(new Label("CARDS SLOT", game.skin)).pad(10);
-        groveCard = new CardActor(new TextureRegion(groveCardTexture));
-        groveCard.setTransform(true);
-        groveCard.setOrigin(22.5f, 32f);
-        groveCard.addListener(new ClickListener() {
-            @Override
-            public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
-                if (!isMoving) {
-                    isPlacingTile = true;
-                    selectedCard = groveCard;
-                    Gdx.app.log("Game", "Режим карты GROVE активирован!");
-                    com.badlogic.gdx.scenes.scene2d.Actor cardActor = event.getListenerActor();
-
-                    cardActor.clearActions();
-                    cardActor.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.scaleTo(
-                        1.3f, 1.3f, 0.2f, com.badlogic.gdx.math.Interpolation.swingOut
-                    ));
-                }
-            }
-        });
-        cardArea.add(groveCard).pad(5).size(45, 64);
-        leftSide.add(cardArea).expandX().fillX().height(68);
+        cardHand = new CardArea(game.skin, this);
+        groveCard = new CardActor(new TextureRegion(groveCardTexture), "GROVE");
+        cardHand.addCard(groveCard);
+        swampCard = new CardActor(new TextureRegion(swampCardTexture), "SWAMP");
+        cardHand.addCard(swampCard);
+        leftSide.add(cardHand).expandX().fillX().height(68);
         // Меню и статы
         Table rightSidebar = new Table();
         rightSidebar.setBackground(game.skin.newDrawable("white-pixel", Color.valueOf("#34495e")));
@@ -305,7 +178,6 @@ public class BattleScreen implements Screen {
         root.add(leftSide).expand().fill();
         root.add(rightSidebar).width(138).fillY();
         //тут поведение кнопок
-//        UIStyles.addBackButton(stage, game.skin, () -> game.setScreen(hubScreen));
         UIStyles.addBackButton(stage, game.skin, () -> {
             hubScreen.setFrogSpawned(true);
             isMoving = false;
@@ -313,41 +185,18 @@ public class BattleScreen implements Screen {
         });
     }
 
-    private void selectCardForPlacement(CardActor card) {
-        isPlacingTile = true;
-        selectedCard = card;
-        Gdx.app.log("Game", "Выбрана карта: " + card.terrainType + ". Выберите клетку дороги.");
-    }
-
-    private void replaceRoadTile(Vector2 cell, String type) {
-        for (Vector2 p : path) {
-            if (p.equals(cell)) {
-                roadModifiers.put(p, type);
-                Gdx.app.log("Game", "Тайл " + cell + " успешно заменен на " + type);
-                break;
-            }
-        }
-    }
-
     private void handleMapClicks() {
         if (isPlacingTile && Gdx.input.justTouched()) {
             Vector2 clickedCell = getGridPosFromMouse();
-            boolean targetFound = false;
-            for (Vector2 roadTile : path) {
-                if ((int)roadTile.x == (int)clickedCell.x && (int)roadTile.y == (int)clickedCell.y) {
-                    roadModifiers.put(roadTile, "GROVE");
-                    targetFound = true;
-                    break;
-                }
-            }
-            if (targetFound) {
+            boolean success = placementManager.tryPlaceTerrain(clickedCell, selectedCard.getTerrainType());
+            if (success) {
                 isPlacingTile = false;
-                if (groveCard != null) {
-                    groveCard.remove();
+                hoverGridPos.set(-1, -1);
+
+                if (selectedCard != null) {
+                    cardHand.removeCard(selectedCard);
+                    selectedCard = null;
                 }
-                Gdx.app.log("Game", "Успешно установлено в: " + clickedCell);
-            } else {
-                Gdx.app.log("Game", "Клик мимо дороги: " + clickedCell);
             }
         }
     }
@@ -358,6 +207,10 @@ public class BattleScreen implements Screen {
         int gridY = MathUtils.floor((touch.y - offsetY) / TILE_SIZE);
         return new Vector2(gridX, gridY);
     }
+
+    public boolean isFrogMoving() { return isMoving; }
+    public void setPlacingTile(boolean placing) { this.isPlacingTile = placing; }
+    public void setSelectedCard(CardActor card) { this.selectedCard = card; }
 
     @Override
     public void show() {
