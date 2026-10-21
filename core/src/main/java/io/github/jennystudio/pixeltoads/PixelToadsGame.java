@@ -23,7 +23,6 @@ public class PixelToadsGame extends Game {
         assets = new Assets();
         assets.loadAll();
         this.skin = UIStyles.createDefaultSkin();
-//        createBasicSkin();
         setScreen(new SplashScreen(this));
     }
 

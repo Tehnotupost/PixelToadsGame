@@ -108,6 +108,10 @@ public class HubScreen implements Screen {
             public void run() { frog.retractTongue(); }
         }, 0.3f);
     }
+    public void setFrogSpawned(boolean spawned) {
+        this.isFirstRunDone = spawned;
+    }
+
     void checkFrogAppearance() {
         if (isFirstRunDone && isLilyPadBuilt) {
             frog.setVisible(true);
@@ -126,6 +130,9 @@ public class HubScreen implements Screen {
     @Override
     public void show() {
         Gdx.input.setInputProcessor(stage);
+        if (isFirstRunDone) {
+            checkFrogAppearance();
+        }
     }
 
     @Override

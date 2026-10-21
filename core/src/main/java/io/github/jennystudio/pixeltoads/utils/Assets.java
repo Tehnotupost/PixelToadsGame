@@ -18,6 +18,21 @@ public class Assets {
     public static final String ROAD_DR = "sprites/roadDR.png";
     public static final String ROAD_UL = "sprites/roadUL.png";
     public static final String ROAD_DL = "sprites/roadDL.png";
+    public static final String CARD_GROVE = "sprites/Grove.png";
+    public static final String GROVE_V = "sprites/groveV.png";
+    public static final String GROVE_H = "sprites/groveH.png";
+    public static final String GROVE_UR = "sprites/groveUR.png";
+    public static final String GROVE_DR = "sprites/groveDR.png";
+    public static final String GROVE_UL = "sprites/groveUL.png";
+    public static final String GROVE_DL = "sprites/groveDL.png";
+    public static final String CARD_SWAMP = "sprites/SwampCard.png";
+    public static final String SWAMP_V = "sprites/swampV.png";
+    public static final String SWAMP_H = "sprites/swampH.png";
+    public static final String SWAMP_UR = "sprites/swampUR.png";
+    public static final String SWAMP_DR = "sprites/swampDR.png";
+    public static final String SWAMP_UL = "sprites/swampUL.png";
+    public static final String SWAMP_DL = "sprites/swampDL.png";
+
 
     public void loadAll() {
         manager.load(LAKE_BG, Texture.class);
@@ -33,6 +48,20 @@ public class Assets {
         manager.load(ROAD_DR, Texture.class);
         manager.load(ROAD_UL, Texture.class);
         manager.load(ROAD_DL, Texture.class);
+        manager.load(CARD_GROVE, Texture.class);
+        manager.load(GROVE_V, Texture.class);
+        manager.load(GROVE_H, Texture.class);
+        manager.load(GROVE_UR, Texture.class);
+        manager.load(GROVE_DR, Texture.class);
+        manager.load(GROVE_UL, Texture.class);
+        manager.load(GROVE_DL, Texture.class);
+        manager.load(CARD_SWAMP, Texture.class);
+        manager.load(SWAMP_V, Texture.class);
+        manager.load(SWAMP_H, Texture.class);
+        manager.load(SWAMP_UR, Texture.class);
+        manager.load(SWAMP_DR, Texture.class);
+        manager.load(SWAMP_UL, Texture.class);
+        manager.load(SWAMP_DL, Texture.class);
         manager.finishLoading();
         for (Texture tex : manager.getAll(Texture.class, new com.badlogic.gdx.utils.Array<Texture>())) {
             tex.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
